@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a simple web application for NFC product scanning and testing. The project consists of a single HTML file (`nfc-scanner.html`) that implements a complete NFC-based product testing workflow.
+This is a simple web application for NFC product scanning and testing. The project consists of a single HTML file (`index.html`) that implements a complete NFC-based product testing workflow. The application is deployed on GitHub Pages at https://schlagzeilen.github.io/schablonentest/
 
 ## Architecture
 
-**Single-Page Application**: The entire application is contained in `nfc-scanner.html` with embedded CSS and JavaScript. No build process or external dependencies are required.
+**Single-Page Application**: The entire application is contained in `index.html` with embedded CSS and JavaScript. No build process or external dependencies are required.
 
 **Core Functionality**:
 - NFC scanning using the Web NFC API (`NDEFReader`)
@@ -27,8 +27,8 @@ This is a simple web application for NFC product scanning and testing. The proje
 
 This project requires no build, test, or lint commands as it's a standalone HTML file. To develop:
 
-1. Open `nfc-scanner.html` directly in a web browser
-2. For NFC functionality, serve over HTTPS (required for Web NFC API)
+1. Open `index.html` directly in a web browser locally, or visit https://schlagzeilen.github.io/schablonentest/
+2. For NFC functionality, serve over HTTPS (required for Web NFC API) - GitHub Pages provides this automatically
 3. Test on NFC-capable devices (primarily Android phones with Chrome)
 
 ## Testing
@@ -39,8 +39,14 @@ No automated test framework is configured. Testing should be done manually:
 - Test duplicate product detection
 - Validate UI responsiveness on mobile devices
 
+## Deployment
+
+**GitHub Pages**: The application is automatically deployed to https://schlagzeilen.github.io/schablonentest/ when changes are pushed to the main branch.
+
+**Local Development**: Open `index.html` directly in a web browser.
+
 ## Browser Compatibility
 
 - Requires browsers with Web NFC API support (primarily Chrome on Android)
-- HTTPS is required for NFC functionality
+- HTTPS is required for NFC functionality (automatically provided by GitHub Pages)
 - Modern JavaScript features used (async/await, template literals)
