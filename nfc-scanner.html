@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Product Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            margin: 10px 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .scan-area {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        .product-list {
+            margin-top: 20px;
+        }
+        .product-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-result {
+            font-weight: bold;
+        }
+        .pass { color: green; }
+        .fail { color: red; }
+        .prompt {
+            background: white;
+            border: 2px solid #007bff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NFC Product Scanner</h1>
+        
+        <div class="scan-area">
+            <p>Hold your phone near an RFID chip to scan</p>
+            <button id="startScan">Start NFC Scanning</button>
+        </div>
+
+        <div id="testPrompt" class="prompt hidden">
+            <h3>Product Scanned</h3>
+            <p>Serial: <span id="currentSerial"></span></p>
+            <p>Was the test successful?</p>
+            <button id="testPass">Yes - Pass</button>
+            <button id="testFail">No - Fail</button>
+        </div>
+
+        <div class="product-list">
+            <h3>Scanned Products (<span id="productCount">0</span>)</h3>
+            <div id="productList"></div>
+            <button id="exportCsv" disabled>Export to CSV</button>
+        </div>
+    </div>
+
+    <script>
+        let scannedProducts = [];
+        let currentSerial = '';
+
+        const startScanBtn = document.getElementById('startScan');
+        const testPrompt = document.getElementById('testPrompt');
+        const currentSerialSpan = document.getElementById('currentSerial');
+        const testPassBtn = document.getElementById('testPass');
+        const testFailBtn = document.getElementById('testFail');
+        const productList = document.getElementById('productList');
+        const productCount = document.getElementById('productCount');
+        const exportCsvBtn = document.getElementById('exportCsv');
+
+        // Check if NFC is supported
+        if ('NDEFReader' in window) {
+            startScanBtn.addEventListener('click', startNFCScanning);
+        } else {
+            startScanBtn.textContent = 'NFC not supported';
+            startScanBtn.disabled = true;
+        }
+
+        async function startNFCScanning() {
+            try {
+                const ndef = new NDEFReader();
+                await ndef.scan();
+                
+                startScanBtn.textContent = 'NFC Scanning Active';
+                startScanBtn.disabled = true;
+
+                ndef.addEventListener('reading', ({ message, serialNumber }) => {
+                    let serial = serialNumber || 'Unknown';
+                    
+                    // Try to read serial from NFC data
+                    for (const record of message.records) {
+                        if (record.recordType === 'text') {
+                            const textDecoder = new TextDecoder(record.encoding);
+                            const text = textDecoder.decode(record.data);
+                            if (text.trim()) {
+                                serial = text.trim();
+                                break;
+                            }
+                        }
+                    }
+
+                    handleNFCRead(serial);
+                });
+
+            } catch (error) {
+                console.error('NFC scanning failed:', error);
+                startScanBtn.textContent = 'NFC Permission Denied';
+            }
+        }
+
+        function handleNFCRead(serial) {
+            // Check if product already scanned
+            if (scannedProducts.find(p => p.serial === serial)) {
+                alert('Product already scanned: ' + serial);
+                return;
+            }
+
+            currentSerial = serial;
+            currentSerialSpan.textContent = serial;
+            testPrompt.classList.remove('hidden');
+        }
+
+        testPassBtn.addEventListener('click', () => recordTestResult(true));
+        testFailBtn.addEventListener('click', () => recordTestResult(false));
+
+        function recordTestResult(passed) {
+            const product = {
+                serial: currentSerial,
+                testResult: passed ? 'Pass' : 'Fail',
+                timestamp: new Date().toISOString()
+            };
+
+            scannedProducts.push(product);
+            updateProductList();
+            testPrompt.classList.add('hidden');
+        }
+
+        function updateProductList() {
+            productCount.textContent = scannedProducts.length;
+            
+            productList.innerHTML = scannedProducts.map(product => `
+                <div class="product-item">
+                    <span>Serial: ${product.serial}</span>
+                    <span class="test-result ${product.testResult.toLowerCase()}">${product.testResult}</span>
+                </div>
+            `).join('');
+
+            exportCsvBtn.disabled = scannedProducts.length === 0;
+        }
+
+        exportCsvBtn.addEventListener('click', exportToCsv);
+
+        function exportToCsv() {
+            const csvContent = [
+                'Serial Number,Test Result,Timestamp',
+                ...scannedProducts.map(p => `${p.serial},${p.testResult},${p.timestamp}`)
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `product-test-results-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
